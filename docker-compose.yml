@@ -149,6 +149,8 @@ services:
     container_name: get_and_produce_data_to_kafka
     networks:
       - my_network
+    depends_on:
+      - broker
 
   consum_clean_and_save_data_to_hdfs:
     build:
@@ -156,6 +158,10 @@ services:
     container_name: consum_clean_and_save_data_to_hdfs
     networks:
       - my_network
+    depends_on:
+      - broker
+      - namenode
+
 
 networks:
   my_network:
