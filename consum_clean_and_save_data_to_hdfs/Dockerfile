@@ -6,6 +6,8 @@ RUN /usr/local/bin/pip install --upgrade pip
 
 RUN /usr/local/bin/pip install -r /home/app/requirements.txt
 
+RUN sleep 20
+
 RUN /usr/local/bin/python /home/app/consum_clean_and_save_data_to_hdfs.py
 
 CMD ["tail", "-f", "/dev/null"]

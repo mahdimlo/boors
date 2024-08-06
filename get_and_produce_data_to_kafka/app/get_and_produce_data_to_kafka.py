@@ -10,7 +10,7 @@ import json
 def produce_data_to_kafka(response, date):
     try: 
         df = pd.read_excel(response.content)
-        df['تاریخ'] = date
+        df['تاریخ'] = str(date)
         data = df.to_dict(orient='records')
         producer = KafkaProducer(
             bootstrap_servers=['kafka-broker:29092'],

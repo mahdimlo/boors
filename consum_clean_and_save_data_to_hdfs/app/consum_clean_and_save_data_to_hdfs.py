@@ -19,8 +19,8 @@ def consum_data_from_kafka():
         for massage in consumer:
             data = massage.value
             all_data.append(data)
-        return all_data
         set_log.info_logger.info(f"All data was properly consumed from Kafka")
+        return all_data
     except Exception as e:
         set_log.error_logger.error(f"Unfortunately, we could not consum the data from Kafka: {str(e)}")
 
@@ -31,8 +31,8 @@ def clean_data(all_data):
         if df.shape[0] < 2:
             set_log.info_logger.info("This data is empty and was removed")
         else:
-            return df
             set_log.info_logger.info("The data was cleared")
+            return df
     except Exception as e:
         set_log.error_logger.error(f"There is a problem in clearing the data: {str(e)}")
 
