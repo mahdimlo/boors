@@ -1,0 +1,6 @@
+pandas
+requests
+jdatetime
+logging
+openpyxl
+kafka-python
