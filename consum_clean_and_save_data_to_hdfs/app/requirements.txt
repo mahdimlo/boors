@@ -1,4 +1,3 @@
 pandas
-logging
 kafka-python
 hdfs

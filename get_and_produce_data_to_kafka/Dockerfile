@@ -8,4 +8,4 @@ RUN /usr/local/bin/pip install -r /home/app/requirements.txt
 
 RUN /usr/local/bin/python /home/app/get_and_produce_data_to_kafka.py
 
-CMD tail -f /var/log/app/error.log
+CMD ["tail", "-f", "/dev/null"]
