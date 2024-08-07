@@ -30,6 +30,7 @@ def clean_data(all_data):
         df = pd.DataFrame(all_data)
         if df.shape[0] < 2:
             set_log.info_logger.info("This data is empty and was removed")
+            return None
         else:
             set_log.info_logger.info("The data was cleared")
             return df
@@ -51,9 +52,10 @@ def main():
     all_data = consum_data_from_kafka()
     if all_data is not None:
         df = clean_data(all_data)
-        date_str = df['تاریخ'].iloc[0]
-        hdfs_path = f"/user/boors_data_csv/{str(date_str)}.csv"
-        save_data_to_hdfs(df, hdfs_path)
+        if df is not None:
+            date_str = df['تاریخ'].iloc[0]
+            hdfs_path = f"/user/boors_data_csv/{str(date_str)}.csv"
+            save_data_to_hdfs(df, hdfs_path)
 
 
 if __name__ == '__main__':
