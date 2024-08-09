@@ -17,13 +17,19 @@ services:
     volumes: 
       - zoo_data:/var/lib/zookeeper/data:z
       - zoo_log:/var/lib/zookeeper/log:z
+    healthcheck:
+      test: ["CMD", "echo", "ruok | nc localhost 2181 | grep imok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   broker:
     image: confluentinc/cp-kafka
     hostname: kafka-broker
     container_name: kafka-broker
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "29092:29092"
@@ -31,12 +37,6 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'kafka-zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
-      # if you want to use this image in your local machine :
-      #   - add this line to your /etc/hosts file -> 127.0.0.1 kafka-broker  
-      # if you want to use this image in a remote server you must do the followings : 
-      # 1- change localhost in the following line to the valid IP address of your remote server.
-      # 2- add this line to your /etc/hosts file in the remote server -> 127.0.0.1 kafka-broker  
-      # AWS : https://rmoff.net/2018/08/02/kafka-listeners-explained/
       KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9092,INTERNAL://kafka-broker:29092
       KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:29092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
@@ -46,8 +46,8 @@ services:
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_JMX_PORT: 9091
+      KAFKA_JMX_HOSTNAME: kafka-broker
       CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka-broker:29092
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: 'true'
@@ -61,27 +61,36 @@ services:
     # chown -R 1000:1000 ./broker
     volumes: 
       - kafka_volume:/var/lib/kafka/data:z
+    healthcheck:
+      test: ["CMD", "nc", "-zv", "localhost", "29092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  kafkaHQ:
-    image: tchiotludo/akhq
-    container_name: kafkaHQ
-    hostname: kafkaHQ
-    depends_on:
-      - broker
-    ports :
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
       - 8080:8080
+    depends_on:
+      broker:
+        condition: service_healthy
     environment:
-      AKHQ_CONFIGURATION: |
-        akhq:
-          connections:
-            docker-kafka-server:
-              properties:
-                bootstrap.servers: "kafka-broker:29092"
-                
+      KAFKA_CLUSTERS_0_NAME: boors_data
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker:29092
+      SERVER_SERVLET_CONTEXT_PATH: /kafka-ui
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9091
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: admin
     networks:
       - my_network
     restart: on-failure:10
-    # restart: always
+    healthcheck:
+      test: ["CMD", "nc", "-zv", "localhost", "8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
@@ -93,12 +102,23 @@ services:
       - HDFS_CONF_dfs_namenode_servicerpc-address=hdfs://namenode:9001
       - HDFS_CONF_dfs_namenode_http-address=hdfs://namenode:50070
       - HDFS_CONF_dfs_namenode_https-address=hdfs://namenode:50470
+      - HDFS_CONF_dfs_namenode_jmx_port=9868
+      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote=true
+      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.port=9868
+      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.authenticate=false
+      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.ssl=false
     ports:
       - "9870:9870" # Expose HDFS UI
+      - "9868:9868"
     volumes:
       - hadoop_namenode:/hadoop/dfs/name
     networks:
       - my_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9870"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
@@ -111,6 +131,9 @@ services:
       - hadoop_datanode:/hadoop/dfs/data
     networks:
       - my_network
+    depends_on:
+      namenode:
+        condition: service_healthy
 
   # spark-master:
   #   image: bde2020/spark-master:3.3.0-hadoop3.3
@@ -150,7 +173,8 @@ services:
     networks:
       - my_network
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
 
   consum_clean_and_save_data_to_hdfs:
     build:
@@ -159,9 +183,27 @@ services:
     networks:
       - my_network
     depends_on:
-      - broker
-      - namenode
+      namenode:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
 
+  nginx:
+    build:
+      context: nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    environment:
+      USERNAME: admin
+      PASSWORD: admin
+    networks:
+      - my_network
+    depends_on:
+      namenode:
+        condition: service_healthy
+      kafka-ui:
+        condition: service_healthy
 
 networks:
   my_network:

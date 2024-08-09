@@ -18,7 +18,7 @@ def produce_data_to_kafka(response, date):
         )
         for record in data:
             producer.send('boors_data_daily', record)
-        set_log.info_logger.info(f"The data for this date {date} was correctly sent to Kafka")
+        set_log.info_logger.info(f"The data for this date {str(date)} was correctly sent to Kafka")
     except Exception as e:
         set_log.error_logger.error(f"Error sending data to Kafka: {str(e)}")
 
@@ -26,7 +26,7 @@ def produce_data_to_kafka(response, date):
 def get_data():
     try:
         now = jdatetime.now().date()
-        now -= timedelta(days=1)
+        now -= timedelta(days=4)
         if now.weekday() < 5:
             url = f"https://members.tsetmc.com/tsev2/excel/MarketWatchPlus.aspx?d={str(now)}"
             response = requests.get(url)
