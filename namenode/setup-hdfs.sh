@@ -53,6 +53,6 @@ hdfs dfs -setfacl -R -m group::--- /user/$USER_OWN
 hdfs dfs -setfacl -R -m group::--- /user/$USER_TOW
 hdfs dfs -setfacl -R -m group::--- /user/$USER_ADMIN
 
-kill %1
+fg %1
 
 hadoop namenode
