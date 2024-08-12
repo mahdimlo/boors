@@ -62,7 +62,7 @@ services:
     volumes: 
       - kafka_volume:/var/lib/kafka/data:z
     healthcheck:
-      test: ["CMD", "nc", "-zv", "localhost", "29092"]
+      test: kafka-topics --bootstrap-server kafka-broker:29092 --list
       interval: 30s
       timeout: 10s
       retries: 5
@@ -93,7 +93,8 @@ services:
       retries: 5
 
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: namenode
     container_name: namenode
     environment:
       - CLUSTER_NAME=test
@@ -102,11 +103,9 @@ services:
       - HDFS_CONF_dfs_namenode_servicerpc-address=hdfs://namenode:9001
       - HDFS_CONF_dfs_namenode_http-address=hdfs://namenode:50070
       - HDFS_CONF_dfs_namenode_https-address=hdfs://namenode:50470
-      - HDFS_CONF_dfs_namenode_jmx_port=9868
-      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote=true
-      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.port=9868
-      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.authenticate=false
-      - HDFS_NAMENODE_OPTS=-Dcom.sun.management.jmxremote.ssl=false
+      - USER_OWN=mahdi
+      - USER_TOW=vahid
+      - USER_ADMIN=admin
     ports:
       - "9870:9870" # Expose HDFS UI
       - "9868:9868"
@@ -182,6 +181,8 @@ services:
     container_name: consum_clean_and_save_data_to_hdfs
     networks:
       - my_network
+    environment:
+      - HDFS_USER=mahdi
     depends_on:
       namenode:
         condition: service_healthy
@@ -195,8 +196,8 @@ services:
     ports:
       - "80:80"
     environment:
-      USERNAME: admin
-      PASSWORD: admin
+      - USERNAME=admin
+      - PASSWORD=admin
     networks:
       - my_network
     depends_on:

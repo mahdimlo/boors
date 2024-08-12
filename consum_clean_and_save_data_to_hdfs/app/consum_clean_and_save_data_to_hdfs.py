@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 import json
 import set_log
 from hdfs import InsecureClient
-
+import os
 
 
 def consum_data_from_kafka():
@@ -42,9 +42,9 @@ def clean_data(all_data):
         set_log.error_logger.error(f"There is a problem in clearing the data: {str(e)}")
 
 
-def save_data_to_hdfs(df, hdfs_path, file_name):
+def save_data_to_hdfs(df, hdfs_path, file_name, hdfs_user):
     try:
-        client = InsecureClient('http://namenode:9870', user='root')
+        client = InsecureClient('http://namenode:9870', user=hdfs_user)
         if not client.status(hdfs_path, strict=False):
             client.makedirs(hdfs_path)
             set_log.info_logger.info(f"Directory {hdfs_path} successfully created in HDFS")
@@ -60,10 +60,11 @@ def main():
     if all_data is not None:
         df = clean_data(all_data)
         if df is not None:
+            hdfs_user = str(os.getenv("HDFS_USER"))
             date_str = df['تاریخ'].iloc[0]
-            hdfs_path = f"/user/boors_data_csv/"
+            hdfs_path = f"/user/{hdfs_user}/boors_data_csv/"
             file_name = f"{str(date_str)}.csv"
-            save_data_to_hdfs(df, hdfs_path, file_name)
+            save_data_to_hdfs(df, hdfs_path, file_name, hdfs_user)
 
 
 if __name__ == '__main__':
