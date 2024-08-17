@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sleep 10
 /usr/sbin/krb5kdc &
 /usr/sbin/kadmind &
 
