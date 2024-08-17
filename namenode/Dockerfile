@@ -1,6 +1,8 @@
 FROM bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
 
-RUN apt update && apt install -y krb5-kdc krb5-admin-server
+RUN sed -i 's/stretch/buster/g' /etc/apt/sources.list && \
+    apt update && \
+    apt install -y krb5-kdc krb5-admin-server
 
 COPY ./namenode_config/hdfs-site.xml /etc/hadoop/hdfs-site.xml
 COPY ./namenode_config/core-site.xml /etc/hadoop/core-site.xml
