@@ -1,5 +1,19 @@
 #!/bin/bash
 
+/usr/sbin/krb5kdc &
+/usr/sbin/kadmind &
+
+kadmin.local -q "addprinc -pw $PASS_ONE $USER_OWN@BOORS.LOCAL"
+kadmin.local -q "addprinc -pw $PASS_TOW $USER_TOW@BOORS.LOCAL"
+kadmin.local -q "addprinc -pw $PASS_ADMIN $USER_ADMIN/admin@BOORS.LOCAL"
+
+kadmin.local -q "addprinc -randkey hdfs/namenode@BOORS.LOCAL"
+kadmin.local -q "addprinc -randkey hdfs/datanode@BOORS.LOCAL"
+
+kadmin.local -q "ktadd -k /etc/security/keytabs/nn.service.keytab hdfs/namenode@BOORS.LOCAL"
+kadmin.local -q "ktadd -k /etc/security/keytabs/dn.service.keytab hdfs/datanode@BOORS.LOCAL"
+kadmin.local -q "ktadd -k /etc/security/keytabs/spnego.service.keytab HTTP/namenode@BOORS.LOCAL"
+
 for USER in $USER_OWN $USER_TOW $USER_ADMIN; do
     echo "export HADOOP_HOME=$HADOOP_HOME" >> /home/$USER/.bashrc
     echo "export PATH=\$PATH:\$HADOOP_HOME/bin:\$HADOOP_HOME/sbin" >> /home/$USER/.bashrc
@@ -53,4 +67,5 @@ hdfs dfs -setfacl -R -m group::--- /user/$USER_OWN
 hdfs dfs -setfacl -R -m group::--- /user/$USER_TOW
 hdfs dfs -setfacl -R -m group::--- /user/$USER_ADMIN
 
-fg %1
+kill %1
+hadoop namenode
